@@ -219,6 +219,7 @@ def get_cached_report(period):
     else:
         report = get_report(period)
     df_rnt = report[report['status'] != 'cancelled']
+    df_rnt = report[report['status'] != 'cancelled_by_taxi']
     df_rnt = df_rnt.groupby(['courier_name', 'route_id', 'store_name'])['pickup_address'].nunique().reset_index()
     routes_not_taken = df_rnt[(df_rnt['courier_name'] == "No courier yet") & (df_rnt['route_id'] != "No route")]
     try:
@@ -266,7 +267,7 @@ if only_no_proofs:
 without_cancelled = st.sidebar.checkbox("Without cancels")
 
 if without_cancelled:
-    df = df[~df["status"].isin(["cancelled", "performer_not_found", "failed"])]
+    df = df[~df["status"].isin(["cancelled", "performer_not_found", "failed", "cancelled_by_taxi"])]
     
 col1, col2, col3 = st.columns(3)
 col1.metric("Not pickuped routes :minibus:", str(len(routes_not_taken)))
