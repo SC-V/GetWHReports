@@ -370,26 +370,6 @@ with st.expander(":round_pushpin: Orders on a map:"):
                 get_color='[0, 128, 255, 160]',
                 get_radius=250,
                 pickable=True
-            ),
-            pdk.Layer(
-                'TextLayer',
-                data=stores_on_a_map,
-                get_position='[store_lon, store_lat]',
-                get_text='store_name',
-                get_color='[0, 128, 255]',
-                get_size=14,
-                get_pixel_offset='[0, 20]',
-                pickable=False
-            ),
-            pdk.Layer(
-                'TextLayer',
-                data=stores_on_a_map,
-                get_position='[store_lon, store_lat]',
-                get_text='cutoff',
-                get_color='[0, 128, 255]',
-                get_size=14,
-                get_pixel_offset='[0, 40]',
-                pickable=False
             )
         ],
     ))
