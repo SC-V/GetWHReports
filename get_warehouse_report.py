@@ -97,11 +97,11 @@ def get_claims(secret, date_from, date_to, cursor=0):
 
 
 def get_report(option="Today", start_=None, end_=None) -> pandas.DataFrame:
-    offset_back = 0
+    offset_back = -1
     if option == "Yesterday":
-        offset_back = 1
+        offset_back = 0
     elif option == "Tomorrow":
-        offset_back = -1
+        offset_back = -2
 
     client_timezone = "America/Mexico_City"
 
@@ -132,6 +132,9 @@ def get_report(option="Today", start_=None, end_=None) -> pandas.DataFrame:
                 continue
             cutoff_time = datetime.datetime.fromisoformat(claim_from_time).astimezone(timezone(client_timezone))
             cutoff_date = cutoff_time.strftime("%Y-%m-%d")
+            if not start_:
+                if cutoff_date != today:
+                    continue
             report_cutoff = cutoff_time.strftime("%Y-%m-%d %H:%M")
             report_client_id = claim['route_points'][1]['external_order_id']
             report_claim_id = claim['id']
@@ -215,7 +218,7 @@ option = st.sidebar.selectbox(
 def get_cached_report(period):
 
     if option == "Monthly":
-        report = get_report(period, start_="2023-01-31", end_="2023-02-28")
+        report = get_report(period, start_="2023-02-01", end_="2023-02-28")
     else:
         report = get_report(period)
     df_rnt = report[report['status'] != 'cancelled']
