@@ -218,7 +218,7 @@ option = st.sidebar.selectbox(
 def get_cached_report(period):
 
     if option == "Monthly":
-        report = get_report(period, start_="2023-02-01", end_="2023-02-28")
+        report = get_report(period, start_="2023-03-01", end_="2023-03-31")
     else:
         report = get_report(period)
     df_rnt = report[report['status'] != 'cancelled']
