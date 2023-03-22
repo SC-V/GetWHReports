@@ -9,6 +9,7 @@ import streamlit as st
 import haversine as hs
 import pydeck as pdk
 import streamlit_analytics
+import dateutil.parser
 
 CLAIM_SECRETS = st.secrets["CLAIM_SECRETS"]
 SHEET_KEY = st.secrets["SHEET_KEY"]
@@ -97,26 +98,35 @@ def get_claims(secret, date_from, date_to, cursor=0):
 
 
 def get_report(option="Today", start_=None, end_=None) -> pandas.DataFrame:
+    
     offset_back = -3
     if option == "Yesterday":
         offset_back = -2
     elif option == "Tomorrow":
         offset_back = -4
+    elif option == "Received":
+        offset_back = 0
 
     client_timezone = "America/Mexico_City"
 
-    if not start_:
-        today = datetime.datetime.now(timezone(client_timezone)) - datetime.timedelta(days=offset_back)
-        search_from = today.replace(hour=0, minute=0, second=0, microsecond=0) - datetime.timedelta(days=3)
-        search_to = today.replace(hour=23, minute=59, second=59, microsecond=999999)
-        date_from = search_from.strftime("%Y-%m-%d")
-        date_to = search_to.strftime("%Y-%m-%d")
-    else:
+    if option == "Monthly":
         today = datetime.datetime.now(timezone(client_timezone))
         date_from_offset = datetime.datetime.fromisoformat(start_).astimezone(
             timezone(client_timezone)) - datetime.timedelta(days=2)
         date_from = date_from_offset.strftime("%Y-%m-%d")
         date_to = end_
+    elif option == "Received":
+        today = datetime.datetime.now(timezone(client_timezone)) - datetime.timedelta(days=offset_back)
+        search_from = today.replace(hour=0, minute=0, second=0, microsecond=0) - datetime.timedelta(days=5)
+        search_to = today.replace(hour=23, minute=59, second=59, microsecond=999999) + datetime.timedelta(days=6)
+        date_from = search_from.strftime("%Y-%m-%d")
+        date_to = search_to.strftime("%Y-%m-%d")        
+    else:
+        today = datetime.datetime.now(timezone(client_timezone)) - datetime.timedelta(days=offset_back)
+        search_from = today.replace(hour=0, minute=0, second=0, microsecond=0) - datetime.timedelta(days=3)
+        search_to = today.replace(hour=23, minute=59, second=59, microsecond=999999)
+        date_from = search_from.strftime("%Y-%m-%d")
+        date_to = search_to.strftime("%Y-%m-%d")
 
     today = today.strftime("%Y-%m-%d")
     report = []
@@ -132,19 +142,27 @@ def get_report(option="Today", start_=None, end_=None) -> pandas.DataFrame:
                 continue
             cutoff_time = datetime.datetime.fromisoformat(claim_from_time).astimezone(timezone(client_timezone))
             cutoff_date = cutoff_time.strftime("%Y-%m-%d")
-            if not start_:
+            if not start_ and option != "Received":
                 if cutoff_date != today:
                     continue
             report_cutoff = cutoff_time.strftime("%Y-%m-%d %H:%M")
-            report_client_id = claim['route_points'][1]['external_order_id']
+            try:
+                report_client_id = claim['route_points'][1]['external_order_id']
+            except:
+                report_client_id = "External ID not set"
             report_claim_id = claim['id']
+            try:
+                report_lo_code = claim['items'][0]['extra_id']
+            except:
+                report_lo_code = "No LO code"
             report_pickup_address = claim['route_points'][0]['address']['fullname']
             report_pod_point_id = claim['route_points'][1]['id']
             report_receiver_address = claim['route_points'][1]['address']['fullname']
             report_receiver_phone = claim['route_points'][1]['contact']['phone']
             report_receiver_name = claim['route_points'][1]['contact']['name']
             report_status = claim['status']
-            report_status_time = claim['updated_ts']
+            report_created_time = dateutil.parser.isoparse(claim['created_ts']).astimezone(timezone(client_timezone))
+            report_status_time = dateutil.parser.isoparse(claim['updated_ts']).astimezone(timezone(client_timezone))
             report_store_name = claim['route_points'][0]['contact']['name']
             report_longitude = claim['route_points'][1]['address']['coordinates'][0]
             report_latitude = claim['route_points'][1]['address']['coordinates'][1]
@@ -176,7 +194,7 @@ def get_report(option="Today", start_=None, end_=None) -> pandas.DataFrame:
                     report_price_of_goods += float(item['cost_value'])
             except:
                 report_price_of_goods = 0
-            row = [report_cutoff, report_client_id, report_claim_id, report_pod_point_id,
+            row = [report_cutoff, report_client_id, report_claim_id, report_pod_point_id, report_lo_code,
                    report_pickup_address, report_receiver_address, report_receiver_phone, report_receiver_name,
                    report_status, report_status_time, report_store_name, report_courier_name, report_courier_park,
                    report_return_reason, report_return_comment, report_autocancel_reason, report_route_id,
@@ -184,9 +202,9 @@ def get_report(option="Today", start_=None, end_=None) -> pandas.DataFrame:
             report.append(row)
 
     result_frame = pandas.DataFrame(report,
-                                    columns=["cutoff", "client_id", "claim_id", "pod_point_id",
+                                    columns=["cutoff", "client_id", "claim_id", "pod_point_id", "lo_code",
                                              "pickup_address", "receiver_address", "receiver_phone",
-                                             "receiver_name", "status", "status_time",
+                                             "receiver_name", "status", "status_time", "created_time",
                                              "store_name", "courier_name", "courier_park",
                                              "return_reason", "return_comment", "cancel_comment",
                                              "route_id", "lon", "lat", "store_lon", "store_lat", "price_of_goods"])
@@ -210,7 +228,7 @@ st.sidebar.caption(f"Page reload doesn't refresh the data.\nInstead, use this bu
 
 option = st.sidebar.selectbox(
     "Select report date:",
-    ["Today", "Yesterday", "Tomorrow", "Monthly"]
+    ["Today", "Yesterday", "Tomorrow", "Monthly", "Received"]
 )
 
 
@@ -271,11 +289,12 @@ without_cancelled = st.sidebar.checkbox("Without cancels")
 
 if without_cancelled:
     df = df[~df["status"].isin(["cancelled", "performer_not_found", "failed", "cancelled_by_taxi"])]
-    
-col1, col2, col3 = st.columns(3)
-col1.metric("Not pickuped routes :minibus:", str(len(routes_not_taken)))
-col2.metric("POD provision :camera:", pod_provision_rate)
-col3.metric(f"Delivered {option.lower()} :package:", delivered_today)
+
+if option != "Received":
+    col1, col2, col3 = st.columns(3)
+    col1.metric("Not pickuped routes :minibus:", str(len(routes_not_taken)))
+    col2.metric("POD provision :camera:", pod_provision_rate)
+    col3.metric(f"Delivered {option.lower()} :package:", delivered_today)
 
 if not statuses or statuses == []:
     filtered_frame = df
@@ -285,6 +304,9 @@ else:
 if couriers:
     filtered_frame = df[df['courier_name'].isin(couriers)]
 
+if option == "Received":
+    filtered_frame = filtered_frame[filtered_frame['status'].isin(["performer_lookup"])]
+    
 st.dataframe(filtered_frame)
 
 client_timezone = "America/Mexico_City"
@@ -295,17 +317,6 @@ TODAY = datetime.datetime.now(timezone(client_timezone)).strftime("%Y-%m-%d") \
 stores_with_not_taken_routes = ', '.join(str(x) for x in routes_not_taken["store_name"].unique())
 st.caption(
     f'Total of :blue[{len(filtered_frame)}] orders in the table.')
-
-with pandas.ExcelWriter(FILE_BUFFER, engine='xlsxwriter') as writer:
-    df.to_excel(writer, sheet_name='wh_routes_report')
-    writer.save()
-
-    st.download_button(
-        label="Download report as xlsx",
-        data=FILE_BUFFER,
-        file_name=f"route_report_{TODAY}.xlsx",
-        mime="application/vnd.ms-excel"
-    )
 
 with st.expander(":round_pushpin: Orders on a map:"):
     st.caption(
@@ -377,4 +388,17 @@ with st.expander(":round_pushpin: Orders on a map:"):
         ],
     ))
 
+with pandas.ExcelWriter(FILE_BUFFER, engine='xlsxwriter') as writer:
+    filtered_frame["status_time"] = filtered_frame["status_time"].apply(lambda a: pandas.to_datetime(a).date()).reindex()
+    filtered_frame["created_time"] = filtered_frame["created_time"].apply(lambda a: pandas.to_datetime(a).date()).reindex()
+    filtered_frame.to_excel(writer, sheet_name='wh_routes_report')
+    writer.save()
+
+    st.download_button(
+        label="Download report as xlsx",
+        data=FILE_BUFFER,
+        file_name=f"route_report_{TODAY}.xlsx",
+        mime="application/vnd.ms-excel"
+    )
+    
 streamlit_analytics.stop_tracking()
