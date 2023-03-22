@@ -196,7 +196,7 @@ def get_report(option="Today", start_=None, end_=None) -> pandas.DataFrame:
                 report_price_of_goods = 0
             row = [report_cutoff, report_client_id, report_claim_id, report_pod_point_id, report_lo_code,
                    report_pickup_address, report_receiver_address, report_receiver_phone, report_receiver_name,
-                   report_status, report_status_time, report_store_name, report_courier_name, report_courier_park,
+                   report_status, report_status_time, report_created_time, report_store_name, report_courier_name, report_courier_park,
                    report_return_reason, report_return_comment, report_autocancel_reason, report_route_id,
                    report_longitude, report_latitude, report_store_longitude, report_store_latitude, report_price_of_goods]
             report.append(row)
