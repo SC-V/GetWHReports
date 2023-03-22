@@ -328,8 +328,12 @@ with st.expander(":round_pushpin: Orders on a map:"):
     chart_data_returns = filtered_frame[
         filtered_frame["status"].isin(['returning', 'returned_finish', 'return_arrived'])]
     chart_data_cancels = filtered_frame[filtered_frame["status"].isin(['cancelled', 'cancelled_by_taxi'])]
-    view_state_lat = filtered_frame['lat'].iloc[0]
-    view_state_lon = filtered_frame['lon'].iloc[0]
+    try:
+        view_state_lat = filtered_frame['lat'].iloc[0]
+        view_state_lon = filtered_frame['lon'].iloc[0]
+    except:
+        view_state_lat = 19.4285
+        view_state_lon = -99.1277
     filtered_frame['cutoff'] = filtered_frame['cutoff'].str.split(' ').str[1]
     stores_on_a_map = filtered_frame.groupby(['store_name', 'store_lon', 'store_lat'])['cutoff'].agg(
         lambda x: ', '.join(x.unique())).reset_index(drop=False)
