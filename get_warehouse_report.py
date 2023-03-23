@@ -11,6 +11,8 @@ import pydeck as pdk
 import streamlit_analytics
 import dateutil.parser
 
+st.set_page_config(layout="wide")
+
 CLAIM_SECRETS = st.secrets["CLAIM_SECRETS"]
 SHEET_KEY = st.secrets["SHEET_KEY"]
 SHEET_ID = st.secrets["SHEET_ID"]
