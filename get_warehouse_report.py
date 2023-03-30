@@ -158,6 +158,7 @@ def get_report(option="Today", start_=None, end_=None) -> pandas.DataFrame:
             except:
                 report_lo_code = "No LO code"
             report_pickup_address = claim['route_points'][0]['address']['fullname']
+            report_corp_id = claim['corp_client_id']
             report_pod_point_id = claim['route_points'][1]['id']
             report_receiver_address = claim['route_points'][1]['address']['fullname']
             report_receiver_phone = claim['route_points'][1]['contact']['phone']
@@ -200,7 +201,7 @@ def get_report(option="Today", start_=None, end_=None) -> pandas.DataFrame:
                    report_pickup_address, report_receiver_address, report_receiver_phone, report_receiver_name,
                    report_status, report_status_time, report_created_time, report_store_name, report_courier_name, report_courier_park,
                    report_return_reason, report_return_comment, report_autocancel_reason, report_route_id,
-                   report_longitude, report_latitude, report_store_longitude, report_store_latitude, report_price_of_goods]
+                   report_longitude, report_latitude, report_store_longitude, report_store_latitude, report_price_of_goods, report_corp_id]
             report.append(row)
 
     result_frame = pandas.DataFrame(report,
@@ -209,7 +210,7 @@ def get_report(option="Today", start_=None, end_=None) -> pandas.DataFrame:
                                              "receiver_name", "status", "status_time", "created_time",
                                              "store_name", "courier_name", "courier_park",
                                              "return_reason", "return_comment", "cancel_comment",
-                                             "route_id", "lon", "lat", "store_lon", "store_lat", "price_of_goods"])
+                                             "route_id", "lon", "lat", "store_lon", "store_lat", "price_of_goods", "corp_id"])
     orders_with_pod = get_pod_orders()
     result_frame = result_frame.apply(lambda row: calculate_distance(row), axis=1)
     result_frame = result_frame.apply(lambda row: check_for_pod(row, orders_with_pod), axis=1)
