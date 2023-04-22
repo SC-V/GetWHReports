@@ -101,11 +101,11 @@ def get_claims(secret, date_from, date_to, cursor=0):
 
 def get_report(option="Today", start_=None, end_=None) -> pandas.DataFrame:
     
-    offset_back = -1
+    offset_back = 0
     if option == "Yesterday":
-        offset_back = 0
+        offset_back = 1
     elif option == "Tomorrow":
-        offset_back = -2
+        offset_back = -1
     elif option == "Received":
         offset_back = 0
 
