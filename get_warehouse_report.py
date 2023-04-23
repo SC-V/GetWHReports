@@ -112,6 +112,8 @@ def get_report(option="Today", start_=None, end_=None) -> pandas.DataFrame:
     client_timezone = "America/Mexico_City"
 
     if option == "Monthly":
+        start_ = "2023-04-01"
+        end_ = "2023-04-30"
         today = datetime.datetime.now(timezone(client_timezone))
         date_from_offset = datetime.datetime.fromisoformat(start_).astimezone(
             timezone(client_timezone)) - datetime.timedelta(days=2)
@@ -236,27 +238,13 @@ option = st.sidebar.selectbox(
 
 
 @st.experimental_memo
-def get_cached_report(period):
-
-    if option == "Monthly":
-        report = get_report(period, start_="2023-04-01", end_="2023-04-30")
-    else:
-        report = get_report(period)
-    df_rnt = report[report['status'] != 'cancelled']
-    df_rnt = report[report['status'] != 'cancelled_by_taxi']
-    df_rnt = df_rnt.groupby(['courier_name', 'route_id', 'store_name'])['pickup_address'].nunique().reset_index()
-    routes_not_taken = df_rnt[(df_rnt['courier_name'] == "No courier yet") & (df_rnt['route_id'] != "No route")]
-    try:
-        pod_provision_rate = len(report[report['proof'] == "Proof provided"]) / len(
-            report[report['status'].isin(['delivered', 'delivered_finish'])])
-        pod_provision_rate = f"{pod_provision_rate:.0%}"
-    except:
-        pod_provision_rate = "--"
-    delivered_today = len(report[report['status'].isin(['delivered', 'delivered_finish'])])
-    return report, routes_not_taken, pod_provision_rate, delivered_today
+def get_cached_report(option):
+    report = get_report(option)
+    return report
 
 
-df, routes_not_taken, pod_provision_rate, delivered_today = get_cached_report(option)
+df = get_cached_report(option)        
+delivered_today = len(df[df['status'].isin(['delivered', 'delivered_finish'])])
 
 statuses = st.sidebar.multiselect(
     'Filter by status:',
@@ -295,9 +283,7 @@ if without_cancelled:
 
 if option != "Received":
     col1, col2, col3 = st.columns(3)
-    col1.metric("Not pickuped routes :minibus:", str(len(routes_not_taken)))
-    col2.metric("POD provision :camera:", pod_provision_rate)
-    col3.metric(f"Delivered {option.lower()} :package:", delivered_today)
+    col1.metric(f"Delivered {option.lower()} :package:", delivered_today)
 
 if not statuses or statuses == []:
     filtered_frame = df
