@@ -109,7 +109,7 @@ def get_report(option="Today", start_=None, end_=None) -> pandas.DataFrame:
     elif option == "Received":
         offset_back = 0
 
-    client_timezone = "America/Mexico_City"
+    client_timezone = "America/Chihuahua"
 
     if option == "Monthly":
         start_ = "2023-04-01"
@@ -298,7 +298,7 @@ if option == "Received":
     
 st.dataframe(filtered_frame)
 
-client_timezone = "America/Mexico_City"
+client_timezone = "America/Chihuahua"
 TODAY = datetime.datetime.now(timezone(client_timezone)).strftime("%Y-%m-%d") \
     if option == "Today" \
     else datetime.datetime.now(timezone(client_timezone)) - datetime.timedelta(days=1)
